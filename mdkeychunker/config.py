@@ -1,7 +1,13 @@
 """Configuration for MDKeyChunker."""
 import os
 from dataclasses import dataclass
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # minimal env for offline review scripts
+
+    def load_dotenv(*_args, **_kwargs) -> bool:
+        return False
 
 
 @dataclass

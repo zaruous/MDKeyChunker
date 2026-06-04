@@ -21,6 +21,11 @@ def main() -> int:
     p.add_argument("--model", help="LLM model name (overrides .env)")
     p.add_argument(
         "--base-url", help="LLM base URL for Ollama/vLLM (overrides .env)")
+    p.add_argument(
+        "--chunk-only",
+        action="store_true",
+        help="Structural chunking only (no LLM). For offline review of design docs.",
+    )
     args = p.parse_args()
 
     input_path = Path(args.input)
@@ -40,7 +45,7 @@ def main() -> int:
         config.llm_base_url = args.base_url
 
     pipeline = Pipeline(config)
-    chunks = pipeline.process_file(str(input_path))
+    chunks = pipeline.process_file(str(input_path), chunk_only=args.chunk_only)
 
     out = args.output or str(input_path.with_suffix(".jsonl"))
     pipeline.save_jsonl(chunks, out)

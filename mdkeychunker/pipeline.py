@@ -19,20 +19,17 @@ class Pipeline:
         self.enricher = Enricher(self.llm)
         self.restructurer = Restructurer(self.config)
 
-    def process_file(self, filepath: str) -> list:
-        path = Path(filepath)
-        if not path.exists():
-            raise FileNotFoundError(f"File not found: {filepath}")
-        content = path.read_text(encoding="utf-8")
-        return self.process_text(content)
-
-    def process_text(self, text: str) -> list:
+    def process_text(self, text: str, *, chunk_only: bool = False) -> list:
         # Reset enricher state so rolling keys don't leak between documents
         self.enricher.reset()
 
         # Step 1: Structure-aware chunking
         chunks = self.chunker.chunk(text)
         log.info("Chunked into %d segments", len(chunks))
+
+        if chunk_only:
+            self._finalize(chunks)
+            return chunks
 
         # Step 2: LLM enrichment with rolling keys
         chunks = self.enricher.enrich_chunks(chunks)
@@ -45,6 +42,13 @@ class Pipeline:
         # Step 4: Set navigation + token counts
         self._finalize(chunks)
         return chunks
+
+    def process_file(self, filepath: str, *, chunk_only: bool = False) -> list:
+        path = Path(filepath)
+        if not path.exists():
+            raise FileNotFoundError(f"File not found: {filepath}")
+        content = path.read_text(encoding="utf-8")
+        return self.process_text(content, chunk_only=chunk_only)
 
     def _finalize(self, chunks: list) -> None:
         try:
